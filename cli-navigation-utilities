@@ -1,0 +1,68 @@
+getRootDirectory(){
+    rootDirectory=$(git rev-parse --show-toplevel)
+    echo $rootDirectory
+}
+
+getFrontendPath(){
+    if [ "$#" -ne 1 ] 
+    then
+        echo "Expected arguments: 1, received: $#"
+        return
+    fi
+
+    # The first argument that is passed through the method is at index 1
+    FRONTEND_PATH="src/main/$1"
+
+    # Navigate to the top folder to make sure the referenced FRONTEND_PATH always matches
+    cd $(getRootDirectory)
+
+    # Find the frontend directory
+    find * -type d -name $1 -print0 | 
+        while IFS= read -r -d '' line; do 
+
+            substring_length=-${#FRONTEND_PATH}
+            substring=${line: substring_length}
+
+            if [[ $substring == $FRONTEND_PATH ]]
+            then
+            destination=$PWD/$line
+
+            echo $destination
+            return
+            fi       
+        done
+}
+
+function fe(){
+    # Check if the root directory is a valid path
+    rootDirectory=$(getRootDirectory)
+    if [ -z "$rootDirectory" ]
+        then
+            "The current directory $PWD is not a valid start position, please navigate to a project folder."  
+            return
+    fi
+
+    # 1.) Define the different types of front-end frameworks that can be active in the repository
+    frontEndFrameworks=("angular" "react")
+
+    for framework in ${frontEndFrameworks[@]}; do
+
+        # 2.) Attempt to find the front-end path for the current framework
+        frontendPath=$(getFrontendPath $framework)
+
+        # 3.) For the first front-end framework that is found, set that one as the active framework 
+        if [ -z "$frontendPath" ]
+        then
+            frontendPath=$PWD
+        else
+            cd $frontendPath
+            return
+        fi
+    done
+}
+
+function root(){
+    # Simply cd to the rootDirectory
+    rootDirectory=$(getRootDirectory)
+    cd $rootDirectory
+}
